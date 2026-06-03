@@ -31,4 +31,8 @@ public class Account extends BaseEntity {
 
     @Column(name = "currency",nullable = false,length = 3)
     private String currency;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 }
