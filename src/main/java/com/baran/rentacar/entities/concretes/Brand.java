@@ -14,7 +14,8 @@ import java.util.List;
 @Entity
 public class Brand {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "brands_seq_gen")
+    @SequenceGenerator(name = "brands_seq_gen", sequenceName = "brands_seq", allocationSize = 50)
     @Column(name="id")
     private int id;
 

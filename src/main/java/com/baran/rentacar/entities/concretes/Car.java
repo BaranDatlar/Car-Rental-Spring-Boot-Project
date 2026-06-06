@@ -14,7 +14,8 @@ import java.math.BigDecimal;
 @Entity
 public class Car {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "cars_seq_gen")
+    @SequenceGenerator(name = "cars_seq_gen", sequenceName = "cars_seq", allocationSize = 50)
     @Column(name="id")
     private int id;
 

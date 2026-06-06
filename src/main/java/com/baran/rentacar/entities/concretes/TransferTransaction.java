@@ -18,7 +18,8 @@ import java.math.BigDecimal;
 @Table(name = "transfer_transactions")
 public class TransferTransaction extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transfer_transactions_seq_gen")
+    @SequenceGenerator(name = "transfer_transactions_seq_gen", sequenceName = "transfer_transactions_seq", allocationSize = 50)
     private Long id;
     @Column(name = "reference",unique = true, nullable = false, length = 36)
     private String reference;

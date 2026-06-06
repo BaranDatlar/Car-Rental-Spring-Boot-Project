@@ -17,7 +17,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class Account extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "accounts_seq_gen")
+    @SequenceGenerator(name = "accounts_seq_gen", sequenceName = "accounts_seq", allocationSize = 50)
     private Long id;
 
     @Column(name = "account_number",unique = true,nullable = false,length = 34)
