@@ -3,6 +3,7 @@ package com.baran.rentacar.webApi.controllers;
 import com.baran.rentacar.business.abstracts.TransferService;
 import com.baran.rentacar.business.requests.CreateTransferRequest;
 import com.baran.rentacar.business.responses.GetTransferResponse;
+import com.baran.rentacar.business.responses.TransferResult;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,16 +21,24 @@ public class TransferController {
     public ResponseEntity<GetTransferResponse> transfer(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody CreateTransferRequest createTransferRequest){
-        GetTransferResponse response = transferService.transfer(idempotencyKey,createTransferRequest);
-        URI location = URI.create("/api/v1/transfers" + response.getReference());
-        return ResponseEntity.created(location).body(response);
+        TransferResult result = transferService.transfer(idempotencyKey,createTransferRequest);
+        var response = result.response();
+        URI location = URI.create("/api/v1/transfers/" + response.getReference());
+        return result.created()
+                ? ResponseEntity.created(location).body(response)
+                : ResponseEntity.ok().body(response);
     }
 
     @PostMapping("/pessimistic")
-    public ResponseEntity<GetTransferResponse> transferPessimistic(@Valid @RequestBody CreateTransferRequest createTransferRequest){
-        GetTransferResponse response = transferService.transferPessimistic(createTransferRequest);
-        URI location = URI.create("/api/v1/transfers" + response.getReference());
-        return ResponseEntity.created(location).body(response);
+    public ResponseEntity<GetTransferResponse> transferPessimistic(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody CreateTransferRequest createTransferRequest){
+        TransferResult result = transferService.transferPessimistic(idempotencyKey,createTransferRequest);
+        var response = result.response();
+        URI location = URI.create("/api/v1/transfers/" + response.getReference());
+        return result.created()
+                ? ResponseEntity.created(location).body(response)
+                : ResponseEntity.ok().body(response);
     }
 
     @GetMapping("/{reference}")

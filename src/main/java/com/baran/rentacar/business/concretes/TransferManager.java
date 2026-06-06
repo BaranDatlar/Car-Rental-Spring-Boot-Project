@@ -3,6 +3,7 @@ package com.baran.rentacar.business.concretes;
 import com.baran.rentacar.business.abstracts.TransferService;
 import com.baran.rentacar.business.requests.CreateTransferRequest;
 import com.baran.rentacar.business.responses.GetTransferResponse;
+import com.baran.rentacar.business.responses.TransferResult;
 import com.baran.rentacar.business.rules.TransferBusinessRules;
 import com.baran.rentacar.core.utilities.exceptions.BusinessException;
 import com.baran.rentacar.core.utilities.mappers.ModelMapperService;
@@ -21,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @AllArgsConstructor
@@ -38,11 +38,11 @@ public class TransferManager implements TransferService {
             DataIntegrityViolationException.class},
             maxAttempts = 3,
             backoff = @Backoff(delay = 50, multiplier = 2))
-    public GetTransferResponse transfer(String idempotencyKey, CreateTransferRequest createTransferRequest) {
+    public TransferResult transfer(String idempotencyKey, CreateTransferRequest createTransferRequest) {
 
         Optional<TransferTransaction> existing = transferRepository.findByReference(idempotencyKey);
         if (existing.isPresent()) {
-            return toResponse(existing.get());
+            return new TransferResult(toResponse(existing.get()),false);
         }
 
         transferBusinessRules.accountsMustBeDifferent(createTransferRequest.getFromAccountNumber(), createTransferRequest.getToAccountNumber());
@@ -73,7 +73,7 @@ public class TransferManager implements TransferService {
         GetTransferResponse response = modelMapperService.forResponse().map(saved, GetTransferResponse.class);
         response.setFromAccountNumber(from.getAccountNumber());
         response.setToAccountNumber(to.getAccountNumber());
-        return response;
+        return new TransferResult(response,true);
     }
 
     @Override
@@ -89,7 +89,16 @@ public class TransferManager implements TransferService {
 
     @Override
     @Transactional
-    public GetTransferResponse transferPessimistic(CreateTransferRequest createTransferRequest) {
+    @Retryable(retryFor =
+            DataIntegrityViolationException.class,
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 50, multiplier = 2))
+    public TransferResult transferPessimistic(String idempotencyKey, CreateTransferRequest createTransferRequest) {
+
+        Optional<TransferTransaction> existing = transferRepository.findByReference(idempotencyKey);
+        if (existing.isPresent()) {
+            return new TransferResult(toResponse(existing.get()),false);
+        }
         transferBusinessRules.accountsMustBeDifferent(createTransferRequest.getFromAccountNumber(), createTransferRequest.getToAccountNumber());
 
         String firstNo  = createTransferRequest.getFromAccountNumber().compareTo(createTransferRequest.getToAccountNumber()) < 0
@@ -113,7 +122,7 @@ public class TransferManager implements TransferService {
         accountRepository.save(to);
 
         TransferTransaction tx = new TransferTransaction();
-        tx.setReference(UUID.randomUUID().toString());
+        tx.setReference(idempotencyKey);
         tx.setFromAccount(from);
         tx.setToAccount(to);
         tx.setAmount(createTransferRequest.getAmount());
@@ -125,15 +134,22 @@ public class TransferManager implements TransferService {
         GetTransferResponse response = modelMapperService.forResponse().map(saved, GetTransferResponse.class);
         response.setFromAccountNumber(from.getAccountNumber());
         response.setToAccountNumber(to.getAccountNumber());
-        return response;
+        return new TransferResult(response,true);
 
     }
 
     @Recover
-    public GetTransferResponse recover(ObjectOptimisticLockingFailureException ex,
+    public TransferResult recover(ObjectOptimisticLockingFailureException ex,
                                        String idempotencyKey,
                                        CreateTransferRequest createTransferRequest) {
         throw new BusinessException("Transfer failed due to high concurrency, please retry");
+    }
+
+    @Recover
+    public TransferResult recover(DataIntegrityViolationException ex,
+                                  String idempotencyKey,
+                                  CreateTransferRequest request) {
+        throw new BusinessException("Transfer failed, duplicate request");
     }
 
     private GetTransferResponse toResponse(TransferTransaction tx) {

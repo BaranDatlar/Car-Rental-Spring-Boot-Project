@@ -2,9 +2,10 @@ package com.baran.rentacar.business.abstracts;
 
 import com.baran.rentacar.business.requests.CreateTransferRequest;
 import com.baran.rentacar.business.responses.GetTransferResponse;
+import com.baran.rentacar.business.responses.TransferResult;
 
 public interface TransferService {
-    GetTransferResponse transfer(String idempotencyKey, CreateTransferRequest createTransferRequest);
+    TransferResult transfer(String idempotencyKey, CreateTransferRequest createTransferRequest);
     GetTransferResponse getByReference(String reference);
-    GetTransferResponse transferPessimistic(CreateTransferRequest createTransferRequest);
+    TransferResult transferPessimistic(String idempotencyKey,CreateTransferRequest createTransferRequest);
 }

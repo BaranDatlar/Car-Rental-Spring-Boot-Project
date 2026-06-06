@@ -13,7 +13,6 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GetAccountResponse {
-    private Long id;
     private String accountNumber;
     private String currency;
     private BigDecimal balance;
